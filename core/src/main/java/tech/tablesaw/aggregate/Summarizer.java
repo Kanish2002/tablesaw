@@ -17,7 +17,8 @@ package tech.tablesaw.aggregate;
 import static tech.tablesaw.api.QuerySupport.numberColumn;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.ListMultimap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -40,6 +41,9 @@ import tech.tablesaw.table.TableSliceGroup;
  * <p>1. Create an instance providing a source table, the column or columns to summarize, and a
  * function or functions to apply 2. Applying the functions to the designated columns, possibly
  * creating subgroup summaries using one of the by() methods
+ *
+ * <p>Summary columns follow the order of the requested source columns. For each source column,
+ * compatible functions are applied in the order supplied. Grouping columns precede summary columns.
  */
 public class Summarizer {
 
@@ -216,10 +220,10 @@ public class Summarizer {
       return summarize(group);
     } else {
       List<Table> results = new ArrayList<>();
-      ArrayListMultimap<String, AggregateFunction<?, ?>> reductionMultimap =
+      ListMultimap<String, AggregateFunction<?, ?>> reductionMultimap =
           getAggregateFunctionMultimap();
 
-      for (String name : reductionMultimap.keys()) {
+      for (String name : reductionMultimap.keySet()) {
         List<AggregateFunction<?, ?>> reductions = reductionMultimap.get(name);
         Table table = TableSliceGroup.summaryTableName(temp);
         for (AggregateFunction function : reductions) {
@@ -312,10 +316,10 @@ public class Summarizer {
       TableSliceGroup group, Function<Table, Selection> selectionFunction) {
     List<Table> results = new ArrayList<>();
 
-    ArrayListMultimap<String, AggregateFunction<?, ?>> reductionMultimap =
+    ListMultimap<String, AggregateFunction<?, ?>> reductionMultimap =
         getAggregateFunctionMultimap();
 
-    for (String name : reductionMultimap.keys()) {
+    for (String name : reductionMultimap.keySet()) {
       List<AggregateFunction<?, ?>> reductions = reductionMultimap.get(name);
       Table groupTable = group.aggregate(name, reductions.toArray(new AggregateFunction<?, ?>[0]));
       groupTable = groupTable.where(selectionFunction);
@@ -363,19 +367,18 @@ public class Summarizer {
   private Table summarize(TableSliceGroup group) {
     List<Table> results = new ArrayList<>();
 
-    ArrayListMultimap<String, AggregateFunction<?, ?>> reductionMultimap =
+    ListMultimap<String, AggregateFunction<?, ?>> reductionMultimap =
         getAggregateFunctionMultimap();
 
-    for (String name : reductionMultimap.keys()) {
+    for (String name : reductionMultimap.keySet()) {
       List<AggregateFunction<?, ?>> reductions = reductionMultimap.get(name);
       results.add(group.aggregate(name, reductions.toArray(new AggregateFunction<?, ?>[0])));
     }
     return combineTables(results);
   }
 
-  private ArrayListMultimap<String, AggregateFunction<?, ?>> getAggregateFunctionMultimap() {
-    ArrayListMultimap<String, AggregateFunction<?, ?>> reductionMultimap =
-        ArrayListMultimap.create();
+  private ListMultimap<String, AggregateFunction<?, ?>> getAggregateFunctionMultimap() {
+    ListMultimap<String, AggregateFunction<?, ?>> reductionMultimap = LinkedListMultimap.create();
     for (String name : summarizedColumns) {
       Column<?> column = temp.column(name);
       ColumnType type = column.type();

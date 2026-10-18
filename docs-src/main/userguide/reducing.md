@@ -61,6 +61,12 @@ In the above examples, we've been using columns as the first n arguments to *sum
 
 `t.summarize(columnName...)`
 
+The result columns follow the order of the columns passed to `summarize()`. Within each source
+column, compatible aggregate functions appear in the order supplied. For example,
+`t.summarize("age", "weight", mean, max).apply()` produces `Mean [age]`, `Max [age]`,
+`Mean [weight]`, and `Max [weight]`, in that order. Grouped summaries put the grouping columns
+first, followed by the summary columns in the same order.
+
 ## Computing subtotals with by()
 
 In this example, we’ll use a Tornado dataset from the NOAA’s Storm Prediction Center. It contains records of every recorded US tornado from 1950-2014.  Once we’ve loaded the data, computing stats on subgroups is easy.
